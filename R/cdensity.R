@@ -17,11 +17,32 @@
 ##  http://www.r-project.org/Licenses/                                        ##
 ##  ========================================================================  ##
 
-cdensity <- function(Y, threshold = quantile(Y[, 2], 0.95), ...)
+cdensity <- function(XY, tau= 0.95,raw=TRUE, ...)
     UseMethod("cdensity")
 
-cdensity.default <- function(Y, threshold = quantile(Y[, 2], 0.95), ...) {
-    y <- Y[, 2]
+cdensity.default <- function(XY, tau=0.95,raw=TRUE, ...) {
+    if((is.matrix(XY)|is.data.frame(XY))==FALSE)
+        stop('data needs to be a matrix or data frame')
+    dim<-ncol(XY)
+    if(dim==2){
+        y <- XY[,2]
+        raw<-TRUE
+    }
+    else{
+        ## Convert data to common margins, if raw == TRUE
+        if(raw == TRUE) {
+            n <- dim(XY)[1]
+            FX <- ecdf(XY[, 2])
+            FY <- ecdf(XY[, 3])
+            x1 <- -1 / log(n / (n + 1) * FX(XY[, 2]))
+            x2 <- -1 / log(n / (n + 1) * FY(XY[, 3]))
+        }
+        if(raw == FALSE) {
+            x1 <- XY[, 2]
+            x2 <- XY[, 3]
+        }
+        y<- apply(cbind(x1,x2),1,min)}
+    threshold <-quantile(y, tau)
     ## Basic input validation
     if (as.numeric(threshold) >= max(y))
         stop('threshold cannot exceed max(y)')
@@ -33,15 +54,15 @@ cdensity.default <- function(Y, threshold = quantile(Y[, 2], 0.95), ...) {
     c <- density(w, n = T, from = 1 / T, to = 1, ...)
     
     ## Organize and return outputs    
-    outputs <- list(c = c, w = w, k = k, T = T, Y = Y)
+    outputs <- list(c = c, w = w, k = k, T = T, XY = XY)
     class(outputs) <- "cdensity"
     return(outputs)
 }
 
-plot.cdensity <- function(x, rugrep = TRUE,
+    plot.cdensity <- function(x, rugrep = TRUE,
                           original = TRUE, main = "", ...) {
     if(original == TRUE) {
-        plot(x$Y[, 1], x$c$y, xlab = "Time", ylab = "Scedasis Density", 
+        plot(x$XY[, 1], x$c$y, xlab = "Time", ylab = "Scedasis Density", 
              main = "", type = "S", ...)
         if(rugrep == TRUE)
             rug(x$Y[x$w * x$T, 1])
@@ -54,3 +75,5 @@ plot.cdensity <- function(x, rugrep = TRUE,
           rug(x$w)
     }
 }
+
+    
