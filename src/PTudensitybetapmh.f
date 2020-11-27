@@ -5,7 +5,7 @@ c=======================================================================
      &                       nlevel,ninter,
      &                       mcmcvec,nsave,tune1,tune2,tune3,
      &                       acrate,f,thetasave,estimasave,cpo,
-     &                       cpar,a,b,
+     &                       cpar,al,be,
      &                       grid,intpn,intpo,
      &                       accums,assign,counter,endp,
      &                       prob,rvecs,
@@ -14,7 +14,7 @@ c=======================================================================
 c
 c     Subroutine `fptdensityu' to run a Markov chain for univariate 
 c     density estimation using a Mixture of Finite Polya Tree prior. The
-c     Polya Tree is centered in a Beta(a,b)  distribution.
+c     Polya Tree is centered in a Beta(al,be)  distribution.
 c
 c     This subroutine is based on the mpt FORTRAN program of 
 c     Tim Hanson.
@@ -93,12 +93,12 @@ c        nlevel      :  integer giving the number of binary partitions
 c                       in the Finite Polya tree prior.
 c        jfr         :  integer vector indicating whether Jeffery's
 c                       prior is used for the centering parameters.
-c        m0          :  real giving the mean of the normal prior
-c                       for the centering mean.
-c        s0          :  real giving the variance of the normal prior
-c                       for the centering mean.
+c        m0          :  real giving the mean of the log- normal prior
+c                       for the shape paramter.
+c        s0          :  real giving the variance of the log-normal prior
+c                       for the shape parameter.
 c        tau         :  real vector giving the hyperparameters of
-c                       inverse gamma prior for the centering variance.
+c                       log-normal prior for the centering scale parameter.
 c
 c-----------------------------------------------------------------------
 c
@@ -136,7 +136,7 @@ c        cpar        :  real giving the current value of the precision
 c                       parameter of the Polya Tree.
 c        a          :  real vector giving the current value of the 
 c                       baseline mean.
-c        b       :  real giving the he current value of the
+c        be       :  real giving the he current value of the
 c                       baseline standard deviation.
 c
 c-----------------------------------------------------------------------
@@ -208,11 +208,11 @@ c        sec00       :  cpu time working variabe.
 c        sec1        :  cpu time working variable.
 c        seed1       :  seed for random number generation.
 c        seed2       :  seed for random number generation.
-c        bc      :  real giving the value of the candidate
+c        bec      :  real giving the value of the candidate
 c                       for the baseline standard deviation. 
-c        b2      :  real giving the current value of
+c        be2      :  real giving the current value of
 c                       the baseline variance. 
-c        b2c     :  real giving the value of the candidate
+c        be2c     :  real giving the value of the candidate
 c                       for the baseline variance. 
 c        skipcount   :  index. 
 c        sprint      :  integer function to print on screen.
@@ -243,11 +243,11 @@ c+++++MCMC parameters
 
 c+++++Stored output
       double precision acrate(3),f(ngrid)
-      double precision thetasave(nsave,3),estimasave(nsave,nrec)
+      double precision thetasave(nsave,3),estimasave(nsave,ngrid)
       double precision cpo(nrec)
 
 c+++++Current values of the parameters
-      double precision cpar,a,b
+      double precision cpar,al,be
 
 c+++++Working space - CPU time
       double precision sec00,sec0,sec1,sec
@@ -275,7 +275,7 @@ c+++++Working space - MH steps
       double precision logcgkn,logcgko
       double precision loglikn,logliko
       double precision logpriorn,logprioro
-      double precision ac,b2,bc,b2c
+      double precision alc,be2,bec,be2c
       double precision ratio
 
 c+++++Working space - Polya tree parameters
@@ -288,7 +288,7 @@ c+++++Working space - Polya tree parameters
 
 c+++++Working space - Random number generator
       integer seed(2),seed1,seed2
-      double precision rbeta,rnorm,rtlnorm
+      double precision rbeta,rlnormal
       real runif
 
 c++++ initialize variables
@@ -354,7 +354,7 @@ c++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
          do i=1,nrec
             nint=2
             tmp1=1.d0/dble(nint)
-            quan=invcdfbetas(tmp1,a,b,1,0)
+            quan=invcdfbetas(tmp1,al,be,1,0)
             if(y(i).le.quan)then
                 assign(i,1)=1
                 counter(1,1)=counter(1,1)+1
@@ -370,7 +370,7 @@ c++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                k1=2*(k-1)+1
                k2=2*(k-1)+2
                
-               quan=invcdfbetas(dble(k1)*tmp1,a,b,1,0) 
+               quan=invcdfbetas(dble(k1)*tmp1,al,be,1,0) 
                
                if(y(i).le.quan)then
                   assign(i,j)=k1
@@ -418,22 +418,22 @@ c++++++++ end points
   
           tmp1=1.d0/dble(ninter)  
           do i=1,npoints
-             endp(i)=invcdfbetas(dble(i)*tmp1,a,b,1,0)
+             endp(i)=invcdfbetas(dble(i)*tmp1,al,be,1,0)
           end do
 
 c++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c+++++++ Updating a using a MH step                  +++
+c+++++++ Updating al using a MH step                  +++
 c++++++++++++++++++++++++++++++++++++++++++++++++++++++++
            if(arand.eq.1)then
 
             logliko=0.d0
             loglikn=0.d0
 
-            ac=rtlnorm(log(a),tune1*0.1d0,0,0,.true.,.true.)
+            alc=rlnormal(log(al),tune1*0.1d0)
             
 
-            logcgkn=dlnrm(a ,log(ac),tune1*0.1d0,1) 
-            logcgko=dlnrm(ac,log(a ),tune1*0.1d0,1) 
+            logcgkn=dlnrm(al ,log(alc),tune1*0.1d0,1) 
+            logcgko=dlnrm(alc,log(al ),tune1*0.1d0,1) 
 
 
             do i=1,nrec
@@ -441,7 +441,7 @@ c+++++++++++++ possition according to the candidate
 
                nint=2
                tmp1=1.d0/dble(nint)
-               quan=invcdfbetas(tmp1,ac,b,1,0)
+               quan=invcdfbetas(tmp1,alc,be,1,0)
                if(y(i).le.quan)then
                   intlp=1
                  else
@@ -455,7 +455,7 @@ c+++++++++++++ possition according to the candidate
                   k1=2*(k-1)+1
                   k2=2*(k-1)+2
                
-                  quan=invcdfbetas(dble(k1)*tmp1,ac,b,1,0) 
+                  quan=invcdfbetas(dble(k1)*tmp1,alc,be,1,0) 
                  
                   if(y(i).le.quan)then
                      intlp=k1
@@ -468,13 +468,13 @@ c+++++++++++++ possition according to the candidate
 
 c+++++++++++++ likelihood current
 
-               tmp1=prob(intpo(i))*dble(ninter)*dbet(y(i),a,b,0)
+               tmp1=prob(intpo(i))*dble(ninter)*dbet(y(i),al,be,0)
 
                logliko=logliko+log(tmp1)
 
-c+++++++++++++ likelihood candidate
+c+++++++++++++ likelihood candidalte
 
-               tmp2=prob(intpn(i))*dble(ninter)*dbet(y(i),ac,b,0)
+               tmp2=prob(intpn(i))*dble(ninter)*dbet(y(i),alc,be,0)
             
                loglikn=loglikn+log(tmp2)
 
@@ -485,18 +485,18 @@ c++++++++++ acceptance step
             logprioro=0.d0
 
             if(jfr(2).eq.0)then
-               logpriorn=(0.5d0*m0-1.d0)*log(ac)-
-     &                     0.5d0*s0*ac
+               logpriorn=(0.5d0*m0-1.d0)*log(alc)-
+     &                     0.5d0*s0/alc
 
-               logprioro=(0.5d0*m0-1.d0)*log(a)-
-     &                     0.5d0*s0*a
+               logprioro=(0.5d0*m0-1.d0)*log(al)-
+     &                     0.5d0*s0/al
             end if
 
             ratio=loglikn-logliko+logcgkn-logcgko+
      &            logpriorn-logprioro 
 
             if(log(dble(runif())).lt.ratio)then
-               a=ac
+               al=alc
                   do i=1,nrec
                   intpo(i)=intpn(i)
                end do
@@ -508,7 +508,7 @@ c++++++++++ acceptance step
 
 
 c++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c+++++++ Updating b using a MH step               +++
+c+++++++ Updating be using a MH step               +++
 c++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
          if(brand.eq.1)then
@@ -516,10 +516,10 @@ c++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             logliko=0.d0
             loglikn=0.d0
 
-            bc=rtlnorm(log(b),tune2*0.1d0,0,0,.true.,.true.)
+            bec=rlnormal(log(be),tune2*0.1d0)
             
-            logcgkn=dlnrm(b ,log(bc),tune2*0.1d0,1) 
-            logcgko=dlnrm(bc,log(b ),tune2*0.1d0,1) 
+            logcgkn=dlnrm(be ,log(bec),tune2*0.1d0,1) 
+            logcgko=dlnrm(bec,log(be ),tune2*0.1d0,1) 
 
 
             do i=1,nrec
@@ -527,7 +527,7 @@ c+++++++++++++ possition according to the candidate
 
                nint=2
                tmp1=1.d0/dble(nint)
-               quan=invcdfbetas(tmp1,a,bc,1,0)
+               quan=invcdfbetas(tmp1,al,bec,1,0)
                if(y(i).le.quan)then
                   intlp=1
                  else
@@ -541,7 +541,7 @@ c+++++++++++++ possition according to the candidate
                   k1=2*(k-1)+1
                   k2=2*(k-1)+2
                
-                  quan=invcdfbetas(dble(k1)*tmp1,a,bc,1,0) 
+                  quan=invcdfbetas(dble(k1)*tmp1,al,bec,1,0) 
                  
                   if(y(i).le.quan)then
                      intlp=k1
@@ -554,13 +554,13 @@ c+++++++++++++ possition according to the candidate
 
 c+++++++++++++ likelihood current
 
-               tmp1=prob(intpo(i))*dble(ninter)*dbet(y(i),a,b,0)
+               tmp1=prob(intpo(i))*dble(ninter)*dbet(y(i),al,be,0)
 
                logliko=logliko+log(tmp1)
 
-c+++++++++++++ likelihood candidate
+c+++++++++++++ likelihood candidalte
 
-               tmp2=prob(intpn(i))*dble(ninter)*dbet(y(i),a,bc,0)
+               tmp2=prob(intpn(i))*dble(ninter)*dbet(y(i),al,bec,0)
             
                loglikn=loglikn+log(tmp2)
 
@@ -571,18 +571,18 @@ c++++++++++ acceptance step
             logprioro=0.d0
 
             if(jfr(2).eq.0)then
-               logpriorn=(0.5d0*tau(1)-1.d0)*log(bc)-
-     &                     0.5d0*tau(2)*bc
+               logpriorn=(0.5d0*tau(1)-1.d0)*log(bec)-
+     &                     0.5d0*tau(2)/bec
 
-               logprioro=(0.5d0*tau(1)-1.d0)*log(b)-
-     &                     0.5d0*tau(2)*b
+               logprioro=(0.5d0*tau(1)-1.d0)*log(be)-
+     &                     0.5d0*tau(2)/be
             end if
 
             ratio=loglikn-logliko+logcgkn-logcgko+
      &            logpriorn-logprioro 
 
             if(log(dble(runif())).lt.ratio)then
-               b=bc
+               be=bec
                   do i=1,nrec
                   intpo(i)=intpn(i)
                end do
@@ -598,7 +598,7 @@ c++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 c++++++++++ sample candidates
 
-            cparc=rtlnorm(log(cpar),tune3*0.2,0,0,.true.,.true.)
+            cparc=rlnormal(log(cpar),tune3*0.2)
             logcgkn=dlnrm(cpar ,log(cparc),tune3*0.2,1) 
             logcgko=dlnrm(cparc,log(cpar ),tune3*0.2,1) 
 
@@ -661,10 +661,10 @@ c++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                dispcount=dispcount+1
               
 c+++++++++++++ a
-               thetasave(isave,1)=a
+               thetasave(isave,1)=al
 
 c+++++++++++++ b
-               thetasave(isave,2)=b
+               thetasave(isave,2)=be
 
 c+++++++++++++ c parameter
                thetasave(isave,3)=cpar
@@ -672,8 +672,7 @@ c+++++++++++++ c parameter
 c+++++++++++++ cpo
                do i=1,nrec
                   tmp1=prob(intpo(i))*dble(ninter)*
-     &                 dbet(y(i),a,b,0)
-                  estimasave(isave,i)=tmp1
+     &                 dbet(y(i),al,be,0)
                   cpo(i)=cpo(i)+1.0d0/tmp1 
                end do
 
@@ -682,7 +681,7 @@ c+++++++++++++ density
                do i=1,ngrid
                   nint=2
                   tmp1=1.d0/dble(nint)
-                  quan=invcdfbetas(tmp1,a,b,1,0)
+                  quan=invcdfbetas(tmp1,al,be,1,0)
                   if(grid(i).le.quan)then
                      intlp=1
                     else
@@ -695,7 +694,7 @@ c+++++++++++++ density
                      k=intlp
                      k1=2*(k-1)+1
                      k2=2*(k-1)+2
-                     quan=invcdfbetas(dble(k1)*tmp1,a,b,1,0) 
+                     quan=invcdfbetas(dble(k1)*tmp1,al,be,1,0) 
                      if(grid(i).le.quan)then
                         intlp=k1
                       else
@@ -703,7 +702,9 @@ c+++++++++++++ density
                      end if  
                   end do
                   f(i)=f(i)+prob(intlp)*dble(ninter)*
-     &                 dbet(grid(i),a,b,0)
+     &                 dbet(grid(i),al,be,0)
+                   estimasave(isave,i)=prob(intlp)*dble(ninter)*
+     &                 dbet(grid(i),al,be,0)
                end do
 
 c+++++++++++++ print

@@ -67,8 +67,8 @@ cPTdensity.default <- function(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,st
     } 
     else
     {
-      left <- min(y)-0.5*sqrt(var(y))
-      right <- max(y)+0.5*sqrt(var(y))
+      left <- 0
+      right <-1
     }    
     
     #########################################################################################
@@ -90,7 +90,7 @@ cPTdensity.default <- function(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,st
       S0 <- diag(1,nvar)
     }
     
-    if(is.null(prior$a))
+    if(is.null(prior$al))
     {
       arand <- 1
       if(is.null(prior$m0))
@@ -106,10 +106,10 @@ cPTdensity.default <- function(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,st
     else
     {  
       arand <- 0
-      a <- prior$a
+      al <- prior$al
     }
     
-    if(is.null(prior$b))
+    if(is.null(prior$be))
     {
       brand <- 1
       if(nvar==1)
@@ -139,7 +139,7 @@ cPTdensity.default <- function(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,st
     else
     {  
       brand <- 0
-      b <- prior$b
+      be <- prior$be
     }
     
     if(is.null(prior$a0))
@@ -211,7 +211,7 @@ cPTdensity.default <- function(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,st
     
     thetasave <- matrix(0,nrow=nsave,ncol=nvar+nvar*(nvar+1)/2+1)
     randsave <- matrix(0,nrow=nsave,ncol=nvar)
-    estimasave<-matrix(0,nrow=nsave,ncol=nrec)
+    estimasave<-matrix(0,nrow=nsave,ncol=ngrid)
     
     #########################################################################################
     # parameters depending on status
@@ -223,11 +223,13 @@ cPTdensity.default <- function(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,st
       {
         if(arand==1)
         {
-          a <- mean(y)
+          ymed <- mean(y)
+          al<-ymed*(((ymed*(1-ymed))/var(y))-1)
         }
         if(brand==1)
         {
-          b <- sqrt(var(y))
+          ymed <- mean(y)
+          be <- (1-ymed)*(((ymed*(1-ymed))/var(y))-1)
         }
         
       }}
@@ -235,8 +237,8 @@ cPTdensity.default <- function(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,st
     if(status==FALSE)
     {
       cpar <- state$alpha
-      a <- state$a 
-      b <- state$b
+      al <- state$al 
+      be <- state$be
     }    
     
     #########################################################################################
@@ -312,6 +314,7 @@ cPTdensity.default <- function(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,st
       prob <- rep(0,ninter)
       rvecs <- matrix(0,nrow=nlevel,ncol=ninter)
       
+      #foo <- .Fortran("ptdensityubp",
       foo <- .Fortran("ptdensitybetaupmh",
                       ngrid      =as.integer(ngrid),
                       nrec       =as.integer(nrec),
@@ -336,8 +339,8 @@ cPTdensity.default <- function(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,st
                       estimasave  =as.double(estimasave),
                       cpo        =as.double(cpo),		
                       cpar       =as.double(cpar),		
-                      a         =as.double(a),		
-                      b      =as.double(b),		
+                      al         =as.double(al),		
+                      be         =as.double(be),		
                       grid       =as.double(grid),		
                       intpn     =as.integer(intpn),		
                       intpo     =as.integer(intpo),		
@@ -365,11 +368,13 @@ cPTdensity.default <- function(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,st
     }
     
     state <- list(alpha=foo$cpar,
-                  a=foo$a,
-                  b=matrix(foo$b,nrow=nvar,ncol=nvar)
+                  al=foo$al,
+                  be=matrix(foo$be,nrow=nvar,ncol=nvar)
     )
     
     thetasave <- matrix(foo$thetasave,nrow=nsave,ncol=(nvar+nvar*(nvar+1)/2+1))
+    estimasave<-matrix(foo$estimasave,nrow=nsave,ncol=ngrid)
+   
     if(nvar>1)
     {
       randsave <- matrix(foo$randsave,nrow=nsave,ncol=nvar)
@@ -381,7 +386,7 @@ cPTdensity.default <- function(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,st
     pnames1<-NULL
     for(i in 1:nvar)
     {
-      pnames1<-c(pnames1,paste("a",varnames[i],sep=":"))
+      pnames1<-c(pnames1,paste("al",varnames[i],sep=":"))
     }
     pnames2<-NULL
     for(i in 1:nvar)
@@ -396,7 +401,7 @@ cPTdensity.default <- function(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,st
         {
           tmp <- paste(varnames[i],varnames[j],sep="-")
         }   
-        pnames2 <- c(pnames2,paste("b",tmp,sep=":"))
+        pnames2 <- c(pnames2,paste("be",tmp,sep=":"))
       }	
     }
     
@@ -619,25 +624,51 @@ cPTdensity.default <- function(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,st
 }
 
 plot.cPTdensity <- function(x, rugrep = TRUE,
-                            original = TRUE, main = "", ...) {
-  if(original == TRUE) {
-    aux<-data.frame(x$c$x1,x$c$dens)
-    aux<-aux[which(aux[,1]>=0 & aux[,1]<=1),]
+                            original = TRUE, main = "", CI= FALSE, ...) {
+  aux<-data.frame(x$c$x1,x$c$dens)
+  aux<-aux[which(aux[,1]>0.01 & aux[,1]<1),]
+  if(CI==TRUE){
+    ci<-data.frame(x$c$x1,t(x$c$estimasave))
+    ci<-ci[which(ci[,1]>0.01 & ci[,1]<1),]
+    intV <- t(apply(ci[,-1], 1, quantile, probs = c(0.05, 0.95)));
+    min<-intV[,1];max<-intV[,2];
+    yl<-max(min,max)
+    if(original == TRUE) {
+      plot(aux, xlab = "Time", ylab = "Joint Scedasis Density", 
+           main = "",
+           type = "S", ylim=c(0,yl),...)
+      polygon(c(rev(ci[,1]), ci[,1]), c(rev(min), max), col = 'lightgrey', border = NA)
+      lines(aux,type="S")
+      if(rugrep == TRUE)
+        rug(x$XY[x$w * x$T, 1])
+    }
+    if(original == FALSE) {
+      par(pty = "s")
+      plot(aux, xlab = "w", ylab = "Joint Scedasis Density", 
+           main = "",ylim=c(0,yl), ...)
+      polygon(c(rev(x$c$x1), x$c$x1), c(rev(min), max), col = 'lightgrey', border = NA)
+      lines(aux,type="S")
+      if (rugrep == TRUE)
+        rug(x$w)
+    }
+  }
+  else{
+    if(original == TRUE) {
     plot(aux, xlab = "Time", ylab = "Joint Scedasis Density", 
          main = "",
          type = "S", ...)
     if(rugrep == TRUE)
       rug(x$XY[x$w * x$T, 1])
-  }
+        }
   if(original == FALSE) {
     par(pty = "s")
-    plot(x$c, xlab = "w", ylab = "Joint Scedasis Density", 
+    plot(aux, xlab = "w", ylab = "Joint Scedasis Density", 
          main = "",
          ...)
     if (rugrep == TRUE)
       rug(x$w)
-  }
-}
+  }}
+ }
 
 
 

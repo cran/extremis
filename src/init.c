@@ -8,8 +8,6 @@
 extern void F77_NAME(ptdensitybetaupmh)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
 
 
-
-
 static const R_FortranMethodDef FortranEntries[] = {
     {"ptdensitybetaupmh",      (DL_FUNC) &F77_NAME(ptdensitybetaupmh),      35},
     {NULL, NULL, 0}

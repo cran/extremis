@@ -34,7 +34,7 @@ cPTdensity(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,status, data =
    the hyperparameters of the inverted gamma prior distribution for the
    centering Beta scale parameter,\code{m0} and \code{S0} giving the
    hyperparameters of the inverted gamma prior distribution for the
-   centering Beta scale parameter, and \code{a}, \code{b} giving the
+   centering Beta scale parameter, and \code{al}, \code{be} giving the
    value of the shape and scale parameter of the centering
    distribution.}
  \item{mcmc}{a list giving the MCMC parameters. The list must include
@@ -65,8 +65,8 @@ cPTdensity(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,status, data =
   \item{k}{number of exceedances above the threshold.}
   \item{w}{standardized indices of exceedances.}
   \item{Y}{raw data.}
-  \item{a}{ giving the value of the baseline shape parameter.} 
-  \item{b}{ giving the value of the baseline scale parameter.}
+  \item{al}{ giving the value of the baseline shape parameter.} 
+  \item{be}{ giving the value of the baseline scale parameter.}
   \item{alpha}{ giving the value of the precision parameter.}
   The \code{plot} method depicts the estimated joint scedasis density. 
 }
@@ -77,17 +77,17 @@ cPTdensity(XY, tau = 0.95, raw = TRUE, prior, mcmc, state,status, data =
   prior. The details are as follows. Let \deqn{Z_i = min(X_i, Y_i)}. 
   The model is given by:
   \deqn{Z_1, \ldots , Z_n | G \sim G}{Z1,...,Zn | G ~ G}
-  \deqn{G | \alpha,a,b \sim PT(\Pi^{a,b},\textit{A})}{G | alpha,a,b ~ PT(Pi^{a,b},\textit{A})}
-  where, the the PT is centered around a \eqn{Beta(a,b)}{Beta(a,b)} distribution, by taking each \eqn{m} level of the partition \eqn{\Pi^{a, b}}{\Pi^{a, b}} to coincide 
-  with the \eqn{k/2^m, k=0,\ldots,2^m} quantile of the \eqn{Beta(a,b)}{Beta(a,b)} distribution.
+  \deqn{G | \alpha,al,be \sim PT(\Pi^{al,be},\textit{A})}{G | alpha,a,b ~ PT(Pi^{al,be},\textit{A})}
+  where, the the PT is centered around a \eqn{Beta(al,be)}{Beta(al,be)} distribution, by taking each \eqn{m} level of the partition \eqn{\Pi^{al, be}}{\Pi^{al, be}} to coincide 
+  with the \eqn{k/2^m, k=0,\ldots,2^m} quantile of the \eqn{Beta(al,be)}{Beta(al,be)} distribution.
   The family \eqn{\textit{A}=\{\alpha_e: e \in E^{*}\}}{\textit{A}=\{alphae: e \in E^{*}\}}, 
   where \eqn{E^{*}=\bigcup_{m=0}^{m} E^m}{E^{*}=\bigcup_{m=0}^{M} E^m} 
   and \eqn{E^m} is the \eqn{m}-fold product of \eqn{E=\{0,1\}},
   was specified as \eqn{\alpha_{e_1 \ldots e_m}=\alpha m^2}{alpha{e1 \ldots em}=\alpha m^2}. 
 
   In the univariate case,the following proper priors can be assigned:
-    \deqn{a |  m_0, S_0 \sim LNormal(m_0,S_0)}{a | m0, S0 ~ LNormal(m0,S0)}
-  \deqn{b | \tau_1, \tau_2 \sim LNormal(\tau_1,\tau_2)}{b | tau1, tau2 ~ LNormal(tau1,tau2)}
+    \deqn{al |  m_0, S_0 \sim LNormal(m_0,S_0)}{al | m0, S0 ~ LNormal(m0,S0)}
+  \deqn{be | \tau_1, \tau_2 \sim LNormal(\tau_1,\tau_2)}{be | tau1, tau2 ~ LNormal(tau1,tau2)}
  
    To complete the model specification, independent hyperpriors are assumed,
   \deqn{\alpha | a_0, b_0 \sim \Gamma(a_0,b_0)}{alpha | a0, b0 ~ \Gamma(a0,b0)}
@@ -130,7 +130,7 @@ ndisplay <- 500
 mcmc <- list(nburn=nburn,nsave=nsave,nskip=nskip,ndisplay=ndisplay,
  tune1=1.1,tune2=1.1,tune3=1.1)
 ## Prior information
-prior <- list(a0=.1,b0=.1,M=8,m0=.01,S0=.01,tau1=.01,tau2=.01);
+prior<-list(a0=1,b0=1,M=8,m0=.01,S0=.01,tau1=.01,tau2=.01);
 
 T <- 5000
 time <- seq(1/T, 1, by = 1/T)

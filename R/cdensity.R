@@ -65,7 +65,7 @@ cdensity.default <- function(XY, tau=0.95,raw=TRUE, ...) {
         plot(x$XY[, 1], x$c$y, xlab = "Time", ylab = "Scedasis Density", 
              main = "", type = "S", ...)
         if(rugrep == TRUE)
-            rug(x$Y[x$w * x$T, 1])
+            rug(x$XY[x$w * x$T, 1])
     }
     if(original == FALSE) {
         par(pty = "s")
