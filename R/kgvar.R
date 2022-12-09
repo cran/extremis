@@ -49,7 +49,8 @@ kgvar.default <- function(y, centers, iter.max = 10, conf.level = 0.95) {
     ## sintegral is a function from the package Bolstad
     sintegral <- function (x, fx, n.pts = max(256, length(x))) 
     {
-        if (class(fx) == "function") 
+      if(inherits(fx,'function'))  
+      #if (class(fx) == "function") 
             fx = fx(x)
         n.x = length(x)
         if (n.x != length(fx)) 

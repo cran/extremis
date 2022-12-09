@@ -15,7 +15,8 @@ export(angcdf, angcdf.default,
        angscdf, angscdf.default,
        ## bbc, bbc.default,
        cdf, cdf.default,
-       cdensity, cdensity.default,cPTdensity,cPTdensity.default,
+       cdensity, cdensity.default,
+       ## cPTdensity,cPTdensity.default,
        ## cbernstein, cbernstein.default,
        ## etc, etc.default,
        ## etcdf, etcdf.default,
@@ -37,8 +38,8 @@ S3method(cdf, default)
 S3method(plot, cdf)
 S3method(cdensity, default)
 S3method(plot, cdensity)
-S3method(cPTdensity, default)
-S3method(plot, cPTdensity)
+## S3method(cPTdensity, default)
+## S3method(plot, cPTdensity)
 ## S3method(etcdf, default)
 ## S3method(plot, etcdf)
 ## S3method(etc, default)
